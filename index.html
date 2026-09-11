@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Snakes &amp; Ladders 3D — Online</title>
+<style>
+  :root {
+    --p0: #22d3ee;
+    --p1: #f472b6;
+    --accent: #818cf8;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    background: #07070f;
+    color: #fff;
+    overflow: hidden;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  #scene { position: fixed; inset: 0; }
+  #scene canvas { display: block; }
+
+  .hidden { display: none !important; }
+
+  /* ---------- Lobby ---------- */
+  #lobby {
+    position: fixed; inset: 0; z-index: 20;
+    display: flex; align-items: center; justify-content: center;
+    background: radial-gradient(circle at 50% 30%, rgba(99,102,241,0.18), transparent 55%),
+                radial-gradient(circle at 50% 90%, rgba(236,72,153,0.14), transparent 55%),
+                rgba(7,7,15,0.82);
+    backdrop-filter: blur(6px);
+  }
+  .card {
+    width: min(92vw, 400px);
+    padding: 34px 30px 30px;
+    border-radius: 22px;
+    background: linear-gradient(160deg, rgba(30,30,58,0.92), rgba(16,16,32,0.94));
+    border: 1px solid rgba(255,255,255,0.1);
+    box-shadow: 0 30px 80px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.08);
+    text-align: center;
+  }
+  .card h1 {
+    font-size: 1.6rem; font-weight: 700; letter-spacing: -0.02em;
+    background: linear-gradient(90deg, #22d3ee, #818cf8, #f472b6);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    margin-bottom: 6px;
+  }
+  .card p.sub { color: rgba(255,255,255,0.4); font-size: 0.82rem; margin-bottom: 26px; }
+  .field { text-align: left; margin-bottom: 16px; }
+  .field label {
+    display: block; font-size: 0.68rem; text-transform: uppercase;
+    letter-spacing: 0.14em; color: rgba(255,255,255,0.4); margin-bottom: 7px;
+  }
+  input {
+    width: 100%; padding: 12px 14px; border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.12);
+    background: rgba(0,0,0,0.35); color: #fff; font-size: 0.95rem;
+    outline: none; transition: border-color 0.2s, box-shadow 0.2s;
+    font-family: inherit;
+  }
+  input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(129,140,248,0.18); }
+  input.code { letter-spacing: 0.35em; text-align: center; font-weight: 700; font-size: 1.15rem; }
+  .btn {
+    width: 100%; padding: 13px 18px; border-radius: 12px; cursor: pointer;
+    border: 1px solid rgba(255,255,255,0.12); color: #fff; font-size: 0.95rem;
+    font-weight: 600; font-family: inherit; letter-spacing: 0.02em;
+    background: rgba(255,255,255,0.06); transition: transform 0.15s, background 0.2s, box-shadow 0.2s;
+  }
+  .btn:hover { background: rgba(255,255,255,0.13); transform: translateY(-1px); }
+  .btn:active { transform: translateY(0); }
+  .btn.primary {
+    background: linear-gradient(135deg, #22d3ee, #6366f1);
+    border: none; box-shadow: 0 10px 30px rgba(59,130,246,0.35);
+  }
+  .btn.primary:hover { box-shadow: 0 14px 38px rgba(59,130,246,0.5); }
+  .btn.pink { background: linear-gradient(135deg, #f472b6, #a855f7); border: none; box-shadow: 0 10px 30px rgba(236,72,153,0.3); }
+  .divider {
+    display: flex; align-items: center; gap: 12px;
+    color: rgba(255,255,255,0.28); font-size: 0.7rem; letter-spacing: 0.2em;
+    margin: 20px 0; text-transform: uppercase;
+  }
+  .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: rgba(255,255,255,0.1); }
+  .join-row { display: flex; gap: 10px; }
+  .join-row .btn { width: auto; flex: 0 0 42%; }
+  .join-row input { flex: 1; }
+  #lobbyError { color: #fca5a5; font-size: 0.8rem; min-height: 1.1em; margin-top: 14px; }
+
+  /* ---------- HUD ---------- */
+  #hud { position: fixed; inset: 0; z-index: 10; pointer-events: none; }
+  #hud .panel {
+    pointer-events: auto;
+    background: rgba(14,14,28,0.66);
+    border: 1px solid rgba(255,255,255,0.09);
+    backdrop-filter: blur(14px);
+    border-radius: 14px;
+  }
+  #topbar {
+    position: absolute; top: 16px; left: 50%; transform: translateX(-50%);
+    display: flex; align-items: center; gap: 18px; padding: 10px 20px;
+  }
+  #roomLabel { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.14em; color: rgba(255,255,255,0.4); }
+  #roomCode { font-size: 1.15rem; font-weight: 800; letter-spacing: 0.3em; color: #fff; }
+  #copyBtn {
+    pointer-events: auto; cursor: pointer; border: 1px solid rgba(255,255,255,0.15);
+    background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.7);
+    border-radius: 9px; padding: 7px 12px; font-size: 0.72rem; font-family: inherit;
+    transition: all 0.2s;
+  }
+  #copyBtn:hover { background: rgba(255,255,255,0.14); color: #fff; }
+
+  #players {
+    position: absolute; top: 16px; right: 16px; padding: 12px 14px;
+    display: flex; flex-direction: column; gap: 10px; min-width: 168px;
+  }
+  .player-row { display: flex; align-items: center; gap: 10px; font-size: 0.86rem; }
+  .dot { width: 11px; height: 11px; border-radius: 50%; flex: 0 0 auto; box-shadow: 0 0 10px currentColor; }
+  .dot.p0 { background: var(--p0); color: var(--p0); }
+  .dot.p1 { background: var(--p1); color: var(--p1); }
+  .player-row .pname { flex: 1; color: rgba(255,255,255,0.82); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .player-row .ppos { color: rgba(255,255,255,0.4); font-variant-numeric: tabular-nums; font-size: 0.8rem; }
+  .player-row.active .pname { color: #fff; font-weight: 700; }
+  .player-row.active { position: relative; }
+  .player-row.active::after { content: '●'; color: var(--accent); font-size: 0.6rem; }
+
+  #turnBanner {
+    position: absolute; top: 84px; left: 50%; transform: translateX(-50%);
+    padding: 8px 22px; font-size: 0.9rem; font-weight: 600; letter-spacing: 0.03em;
+    transition: color 0.3s;
+  }
+
+  #bottom {
+    position: absolute; bottom: 26px; left: 50%; transform: translateX(-50%);
+    display: flex; align-items: center; gap: 18px;
+  }
+  #rollBtn {
+    pointer-events: auto; cursor: pointer; font-family: inherit;
+    padding: 16px 44px; font-size: 1.05rem; font-weight: 800; letter-spacing: 0.06em;
+    color: #071018; border: none; border-radius: 16px; text-transform: uppercase;
+    background: linear-gradient(135deg, #67e8f9, #818cf8);
+    box-shadow: 0 14px 40px rgba(99,102,241,0.45);
+    transition: transform 0.15s, box-shadow 0.2s, filter 0.2s;
+  }
+  #rollBtn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 18px 48px rgba(99,102,241,0.6); }
+  #rollBtn:active:not(:disabled) { transform: translateY(0); }
+  #rollBtn:disabled { filter: grayscale(0.8) brightness(0.6); cursor: not-allowed; box-shadow: none; }
+
+  #status { position: absolute; bottom: 24px; left: 20px; font-size: 0.72rem; color: rgba(255,255,255,0.35); }
+  #status .live { color: #4ade80; }
+
+  /* ---------- Winner ---------- */
+  #winner {
+    position: fixed; inset: 0; z-index: 30;
+    display: flex; align-items: center; justify-content: center;
+    background: radial-gradient(circle at 50% 40%, rgba(99,102,241,0.25), transparent 60%), rgba(7,7,15,0.7);
+    backdrop-filter: blur(8px);
+  }
+  #winner .card h1 { font-size: 2rem; }
+  #winnerName { font-size: 1.1rem; margin-bottom: 24px; color: rgba(255,255,255,0.75); }
+  #winner .btn { width: auto; padding: 13px 40px; }
+
+  #toast {
+    position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-120%);
+    background: rgba(239,68,68,0.92); color: #fff; padding: 11px 20px;
+    border-radius: 12px; font-size: 0.85rem; z-index: 40; transition: transform 0.3s;
+    box-shadow: 0 12px 30px rgba(0,0,0,0.4);
+  }
+  #toast.show { transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+<div id="scene"></div>
+
+<div id="hud" class="hidden">
+  <div id="topbar" class="panel">
+    <div>
+      <div id="roomLabel">Room</div>
+      <div id="roomCode">----</div>
+    </div>
+    <button id="copyBtn">Copy link</button>
+  </div>
+
+  <div id="players" class="panel"></div>
+  <div id="turnBanner" class="panel">Connecting…</div>
+
+  <div id="bottom">
+    <button id="rollBtn" disabled>Roll Dice</button>
+  </div>
+
+  <div id="status">Connecting…</div>
+</div>
+
+<div id="lobby">
+  <div class="card">
+    <h1>Snakes &amp; Ladders 3D</h1>
+    <p class="sub">Play online with a friend · share a room code</p>
+
+    <div class="field">
+      <label for="nameInput">Your name</label>
+      <input id="nameInput" maxlength="16" placeholder="Player" autocomplete="off">
+    </div>
+
+    <button id="createBtn" class="btn primary">Create Game</button>
+
+    <div class="divider">or join</div>
+
+    <div class="join-row">
+      <input id="codeInput" class="code" inputmode="numeric" maxlength="4" placeholder="CODE" autocomplete="off">
+      <button id="joinBtn" class="btn pink">Join</button>
+    </div>
+
+    <div id="lobbyError"></div>
+  </div>
+</div>
+
+<div id="winner" class="hidden">
+  <div class="card">
+    <h1>Winner!</h1>
+    <div id="winnerName"></div>
+    <button id="rematchBtn" class="btn primary">Rematch</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+<script type="module" src="./client.js"></script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+{
+  "name": "snakes-and-ladders-3d",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Online 2-player 3D Snakes and Ladders",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  }
+}
